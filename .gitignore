@@ -1,0 +1,30 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+
+# Maven
+!backend/pom.xml
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+*.log
+
+# Docker
+mysql-data/
