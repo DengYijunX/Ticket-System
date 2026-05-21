@@ -28,7 +28,10 @@ spring:
     time-zone: Asia/Shanghai
 
 mybatis-plus:
+  # 告诉 MyBatis-Plus 去哪找 XML 映射文件
+  mapper-locations: classpath:mapper/*.xml
   configuration:
+    # 数据库字段 create_time → Java 属性 createTime 自动映射
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    namespace 指向对应的 Mapper 接口全路径
+    MyBatis 通过这个 namespace 知道 XML 里的 SQL 对应哪个 Java 接口
+-->
+<mapper namespace="com.ticket.mapper.TicketCategoryMapper">
+
+    <!--
+        扣减库存（乐观锁）
+        SQL 含义：当 remain_stock > 0 时才扣减，否则返回 0
+        affected_rows > 0 表示扣成功，= 0 表示库存不足
+
+        这是防超卖的第二道防线（第一道在 Redis）
+    -->
+    <update id="deductStock">
+        UPDATE ticket_category
+        SET remain_stock = remain_stock - 1
+        WHERE id = #{categoryId}
+          AND remain_stock > 0
+    </update>
+
+</mapper>
