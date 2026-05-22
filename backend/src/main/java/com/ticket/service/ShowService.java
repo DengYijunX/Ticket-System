@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -33,8 +35,8 @@ public class ShowService {
     public List<Show> getAvailableShows() {
         return showMapper.selectList(
                 new LambdaQueryWrapper<Show>()
-                        .eq(Show::getStatus, 1)          // 已上架
-                        .eq(Show::getSaleStart, true)     // 已到开售时间
+                        .eq(Show::getStatus, 1)                               // 已上架
+                        .le(Show::getSaleStart, LocalDateTime.now())           // 已到开售时间
                         .orderByDesc(Show::getCreateTime)
         );
     }
