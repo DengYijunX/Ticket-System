@@ -61,4 +61,27 @@ export const getOrderList = () => api.get('/order/list');
 export const getOrderStatus = (orderNo: string) =>
   api.get(`/order/status?orderNo=${orderNo}`);
 
+/** ========== 管理后台 ========== */
+
+/** 数据看板 */
+export const getDashboard = () => api.get('/admin/dashboard');
+
+/** 所有演出（后台） */
+export const adminGetShows = () => api.get('/admin/shows');
+
+/** 新建演出 */
+export const adminCreateShow = (data: any) => api.post('/admin/show', data);
+
+/** 更新演出 */
+export const adminUpdateShow = (data: any) => api.put('/admin/show', data);
+
+/** 删除演出 */
+export const adminDeleteShow = (id: number) => api.delete(`/admin/show/${id}`);
+
+/** 所有订单（后台） */
+export const adminGetOrders = () => api.get('/admin/orders');
+
+/** 取消订单/退款 */
+export const adminCancelOrder = (id: number) => api.post(`/admin/order/${id}/cancel`);
+
 export default api;

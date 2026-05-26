@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import ShowListPage from './pages/ShowListPage';
 import ShowDetailPage from './pages/ShowDetailPage';
 import OrderListPage from './pages/OrderListPage';
+import AdminPage from './pages/AdminPage';
 
 const { Content } = Layout;
 
@@ -13,6 +14,15 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
+
+  // 解码 JWT 判断管理员
+  let isAdmin = false;
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      isAdmin = payload.role === 1;
+    } catch {}
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -50,6 +60,19 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           >
             我的订单
           </Button>
+          {isAdmin && (
+            <Button
+              type="text"
+              onClick={() => navigate('/admin')}
+              style={{
+                color: location.pathname === '/admin' ? '#ff2d6b' : '#8888aa',
+                fontSize: 14,
+                fontWeight: location.pathname === '/admin' ? 600 : 400,
+              }}
+            >
+              管理
+            </Button>
+          )}
         </nav>
 
         {token ? (
@@ -110,6 +133,7 @@ export default function App() {
         <Route path="/" element={<AppLayout><ShowListPage /></AppLayout>} />
         <Route path="/show/:id" element={<AppLayout><ShowDetailPage /></AppLayout>} />
         <Route path="/orders" element={<AppLayout><OrderListPage /></AppLayout>} />
+        <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
       </Routes>
     </BrowserRouter>
   );
