@@ -22,6 +22,9 @@ spring:
     port: 5672
     username: guest
     password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -45,6 +48,16 @@ mybatis-plus:
 jwt:
   secret: ticket-system-secret-key-change-in-production
   expire: 86400  # 24h
+
+# ========== 业务参数 ==========
+ticket:
+  order:
+    pay-timeout-seconds: 1800   # 订单支付超时（秒），默认30分钟
+  rate-limit:
+    max-per-second: 3           # 每秒最多抢票次数
+    burst: 3                    # 突发允许的峰值
+  stock:
+    warmup-enabled: true        # 启动时是否预热库存到 Redis
 
 # Prometheus / Actuator
 management:

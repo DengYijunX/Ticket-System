@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, message, Tabs } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { UserOutlined, LockOutlined, PhoneOutlined } from '@ant-design/icons';
 import { login, register } from '../api';
 import { useNavigate } from 'react-router-dom';
@@ -7,13 +7,13 @@ import { useNavigate } from 'react-router-dom';
 /**
  * 登录/注册页面
  *
- * 两个模式：登录 / 注册，通过 Tabs 切换
+ * 暗色背景 + 霓虹灯光圈 + 极简表单
  */
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
-  // 处理登录
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
@@ -25,13 +25,10 @@ export default function LoginPage() {
       } else {
         message.error(res.data.message);
       }
-    } catch {
-      message.error('登录失败');
-    }
+    } catch { message.error('登录失败'); }
     setLoading(false);
   };
 
-  // 处理注册
   const handleRegister = async (values: { username: string; password: string; phone: string }) => {
     setLoading(true);
     try {
@@ -43,65 +40,98 @@ export default function LoginPage() {
       } else {
         message.error(res.data.message);
       }
-    } catch {
-      message.error('注册失败');
-    }
+    } catch { message.error('注册失败'); }
     setLoading(false);
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    }}>
-      <Card style={{ width: 400, borderRadius: 8 }}>
-        <h2 style={{ textAlign: 'center', marginBottom: 24 }}>票务系统</h2>
-        <Tabs
-          centered
-          items={[
-            {
-              key: 'login',
-              label: '登录',
-              children: (
-                <Form onFinish={handleLogin} layout="vertical">
-                  <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-                    <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
-                  </Form.Item>
-                  <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-                    <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
-                  </Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading} block size="large">
-                    登录
-                  </Button>
-                </Form>
-              ),
-            },
-            {
-              key: 'register',
-              label: '注册',
-              children: (
-                <Form onFinish={handleRegister} layout="vertical">
-                  <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-                    <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
-                  </Form.Item>
-                  <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-                    <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
-                  </Form.Item>
-                  <Form.Item name="phone" rules={[{ required: true, message: '请输入手机号' }]}>
-                    <Input prefix={<PhoneOutlined />} placeholder="手机号" size="large" />
-                  </Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading} block size="large">
-                    注册
-                  </Button>
-                </Form>
-              ),
-            },
-          ]}
-        />
-      </Card>
+    <div className="login-container">
+      <div className="login-card fade-up">
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: 12, color: '#555577', letterSpacing: 4, marginBottom: 8 }}>
+            TICKETX
+          </div>
+          <h1>
+            <span className="highlight">{isLogin ? '登' : '注'}</span>录
+          </h1>
+        </div>
+
+        {isLogin ? (
+          <Form onFinish={handleLogin} layout="vertical" size="large">
+            <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+              <Input
+                prefix={<UserOutlined style={{ color: '#555577' }} />}
+                placeholder="用户名"
+                variant="borderless"
+                style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, color: '#fff' }}
+              />
+            </Form.Item>
+            <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#555577' }} />}
+                placeholder="密码"
+                variant="borderless"
+                style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}
+              />
+            </Form.Item>
+            <Button
+              htmlType="submit"
+              loading={loading}
+              block
+              className="buy-btn"
+              style={{ height: 44, fontSize: 14 }}
+            >
+              登录
+            </Button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <Button type="link" onClick={() => setIsLogin(false)} style={{ color: '#555577' }}>
+                没有账号？去注册
+              </Button>
+            </div>
+          </Form>
+        ) : (
+          <Form onFinish={handleRegister} layout="vertical" size="large">
+            <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+              <Input
+                prefix={<UserOutlined style={{ color: '#555577' }} />}
+                placeholder="用户名"
+                variant="borderless"
+                style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, color: '#fff' }}
+              />
+            </Form.Item>
+            <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#555577' }} />}
+                placeholder="密码"
+                variant="borderless"
+                style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}
+              />
+            </Form.Item>
+            <Form.Item name="phone" rules={[{ required: true, message: '请输入手机号' }]}>
+              <Input
+                prefix={<PhoneOutlined style={{ color: '#555577' }} />}
+                placeholder="手机号"
+                variant="borderless"
+                style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, color: '#fff' }}
+              />
+            </Form.Item>
+            <Button
+              htmlType="submit"
+              loading={loading}
+              block
+              className="buy-btn"
+              style={{ height: 44, fontSize: 14 }}
+            >
+              注册
+            </Button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <Button type="link" onClick={() => setIsLogin(true)} style={{ color: '#555577' }}>
+                已有账号？去登录
+              </Button>
+            </div>
+          </Form>
+        )}
+      </div>
     </div>
   );
 }

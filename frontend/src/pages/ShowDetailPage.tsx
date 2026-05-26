@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Tag, message, Modal, InputNumber, Typography, Spin } from 'antd';
+import { Button, message } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { getShowDetail, getSessions, getCategories, buyTicket } from '../api';
-
-const { Title } = Typography;
 
 /**
  * 演出详情页
  *
- * 展示演出信息、场次列表、票价档次，提供抢票按钮
+ * 演出信息 → 场次选择 → 票价档次 → 抢票
  */
 export default function ShowDetailPage() {
   const { id } = useParams();
@@ -17,8 +15,7 @@ export default function ShowDetailPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
-  const [buying, setBuying] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [buyingId, setBuyingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -26,127 +23,163 @@ export default function ShowDetailPage() {
     getSessions(Number(id)).then((r) => r.data.code === 200 && setSessions(r.data.data));
   }, [id]);
 
-  // 点击场次 → 加载对应的票价档次
   const handleSessionClick = (sessionId: number) => {
     setSelectedSession(sessionId);
     getCategories(sessionId).then((r) => r.data.code === 200 && setCategories(r.data.data));
   };
 
-  // 抢票
-  const handleBuy = async (categoryId: number) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+  const handleBuy = async (categoryId: number, remainStock: number) => {
+    if (remainStock <= 0) { message.warning('已售罄'); return; }
+    if (!localStorage.getItem('token')) {
       message.warning('请先登录');
       window.location.href = '/login';
       return;
     }
-
-    setBuying(true);
+    setBuyingId(categoryId);
     try {
-      const res = await buyTicket(selectedSession!, categoryId, quantity);
+      const res = await buyTicket(selectedSession!, categoryId, 1);
       if (res.data.code === 200) {
-        message.success('抢票成功！订单处理中...');
+        const orderNo = res.data.data;
+        message.success({
+          content: `抢票成功！订单号: ${orderNo}`,
+          duration: 6,
+        });
+        // 刷新剩余库存
+        getCategories(selectedSession!).then((r) => r.data.code === 200 && setCategories(r.data.data));
       } else {
         message.error(res.data.message);
       }
-    } catch {
-      message.error('抢票失败，请重试');
-    }
-    setBuying(false);
+    } catch { message.error('抢票失败'); }
+    setBuyingId(null);
   };
 
-  if (!show) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
+  // 覆盖率：剩余/总库存比例
+  const stockPercent = (remain: number, total: number) =>
+    total > 0 ? Math.round((remain / total) * 100) : 0;
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 24 }}>
-      {/* 演出信息 */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', gap: 24 }}>
+    <div className="page">
+      {/* 演出主信息 */}
+      {show && (
+        <div className="glow-card fade-up" style={{ marginBottom: 32, padding: 32, display: 'flex', gap: 32, alignItems: 'center' }}>
           <div style={{
-            width: 200, height: 200, borderRadius: 8,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            width: 140, height: 140, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(135deg, #ff2d6b 0%, #ff6b35 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 64, color: '#fff', flexShrink: 0,
+            fontSize: 48, boxShadow: '0 8px 32px rgba(255,45,107,0.3)',
           }}>
             🎤
           </div>
           <div>
-            <Title level={3}>{show.title}</Title>
-            <Descriptions column={1}>
-              <Descriptions.Item label="场馆">{show.venue}</Descriptions.Item>
-              <Descriptions.Item label="状态">
-                <Tag color="blue">在售</Tag>
-              </Descriptions.Item>
-            </Descriptions>
+            <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, margin: 0 }}>
+              {show.title}
+            </h1>
+            <div style={{ color: '#8888aa', marginTop: 8, fontSize: 14 }}>
+              {show.venue}
+            </div>
+            {show.description && (
+              <div style={{ color: '#555577', marginTop: 8, fontSize: 13 }}>
+                {show.description}
+              </div>
+            )}
           </div>
         </div>
-      </Card>
+      )}
 
-      {/* 场次列表 */}
-      <Title level={4}>选择场次</Title>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+      {/* 场次选择 */}
+      <div className="section-title fade-up fade-up-delay-1">
+        <span className="accent" />
+        选择场次
+      </div>
+      <div className="session-grid fade-up fade-up-delay-1">
         {sessions.map((s) => (
-          <Card
+          <div
             key={s.id}
-            hoverable
-            size="small"
-            style={{
-              width: 180,
-              border: selectedSession === s.id ? '2px solid #1677ff' : undefined,
-            }}
+            className={`session-chip ${selectedSession === s.id ? 'active' : ''}`}
             onClick={() => handleSessionClick(s.id)}
           >
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 16, fontWeight: 'bold' }}>{s.name}</div>
-              <div style={{ color: '#999', fontSize: 12 }}>点击选择</div>
+            <div className="session-chip-date">
+              {new Date(s.startTime).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
             </div>
-          </Card>
+            <div className="session-chip-label">
+              {new Date(s.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* 票价档次 + 抢票 */}
+      {/* 票价档次 */}
       {selectedSession && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <Title level={4} style={{ margin: 0 }}>选择票档</Title>
-            <span>数量：</span>
-            <InputNumber min={1} max={3} value={quantity} onChange={(v) => setQuantity(v || 1)} />
+          <div className="section-title fade-up fade-up-delay-2">
+            <span className="accent" />
+            选择票档
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {categories.map((cat, i) => {
+              const pct = stockPercent(cat.remainStock, cat.totalStock);
+              return (
+                <div
+                  key={cat.id}
+                  className="glow-card fade-up"
+                  style={{
+                    padding: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    animationDelay: `${i * 0.08}s`,
+                  }}
+                >
+                  {/* 左侧：票档信息 */}
+                  <div>
+                    <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 4 }}>
+                      {cat.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="price-tag">¥{cat.price}</span>
+                    </div>
+                  </div>
 
-          <Table
-            dataSource={categories}
-            rowKey="id"
-            pagination={false}
-            columns={[
-              { title: '票档', dataIndex: 'name', key: 'name' },
-              {
-                title: '价格', dataIndex: 'price', key: 'price',
-                render: (price: number) => <span style={{ color: '#f50', fontSize: 18, fontWeight: 'bold' }}>¥{price}</span>,
-              },
-              {
-                title: '剩余', dataIndex: 'remainStock', key: 'remainStock',
-                render: (stock: number) => (
-                  <span style={{ color: stock > 50 ? '#52c41a' : stock > 10 ? '#faad14' : '#f50' }}>
-                    {stock} 张
-                  </span>
-                ),
-              },
-              {
-                title: '操作', key: 'action',
-                render: (_: any, record: any) => (
+                  {/* 中间：库存条 */}
+                  <div style={{ flex: 1, maxWidth: 200, margin: '0 32px' }}>
+                    <div style={{
+                      height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2,
+                      overflow: 'hidden', marginBottom: 6,
+                    }}>
+                      <div style={{
+                        width: `${pct}%`, height: '100%',
+                        background: pct > 50
+                          ? 'linear-gradient(90deg, #52c41a, #73d13d)'
+                          : pct > 10
+                            ? 'linear-gradient(90deg, #faad14, #ffd700)'
+                            : 'linear-gradient(90deg, #ff2d6b, #ff6b35)',
+                        borderRadius: 2,
+                        transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      fontSize: 12, color: '#555577',
+                    }}>
+                      <span>{cat.remainStock} 张剩余</span>
+                      <span>{pct}%</span>
+                    </div>
+                  </div>
+
+                  {/* 右侧：抢票按钮 */}
                   <Button
-                    type="primary"
+                    className="buy-btn"
                     icon={<ShoppingCartOutlined />}
-                    loading={buying}
-                    onClick={() => handleBuy(record.id)}
-                    disabled={record.remainStock <= 0}
+                    loading={buyingId === cat.id}
+                    disabled={cat.remainStock <= 0}
+                    onClick={() => handleBuy(cat.id, cat.remainStock)}
                   >
-                    {record.remainStock > 0 ? '立即抢票' : '已售罄'}
+                    {cat.remainStock > 0 ? '立即抢票' : '已售罄'}
                   </Button>
-                ),
-              },
-            ]}
-          />
+                </div>
+              );
+            })}
+          </div>
         </>
       )}
     </div>

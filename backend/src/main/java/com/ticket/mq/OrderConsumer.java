@@ -37,15 +37,16 @@ public class OrderConsumer {
     public void handleOrderCreate(String message, Channel channel,
                                    @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         try {
-            // 解析消息：userId,sessionId,categoryId,quantity
+            // 解析消息：orderNo,userId,sessionId,categoryId,quantity
             String[] parts = message.split(",");
-            Long userId = Long.parseLong(parts[0]);
-            Long sessionId = Long.parseLong(parts[1]);
-            Long categoryId = Long.parseLong(parts[2]);
-            int quantity = Integer.parseInt(parts[3]);
+            String orderNo = parts[0];
+            Long userId = Long.parseLong(parts[1]);
+            Long sessionId = Long.parseLong(parts[2]);
+            Long categoryId = Long.parseLong(parts[3]);
+            int quantity = Integer.parseInt(parts[4]);
 
-            // 创建订单
-            orderService.createOrder(userId, sessionId, categoryId, quantity);
+            // 创建订单（订单号已预生成）
+            orderService.createOrder(orderNo, userId, sessionId, categoryId, quantity);
 
             // 手动确认消息已被处理
             // 如果不确认，MQ 会认为消息没被处理，会重发

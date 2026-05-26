@@ -2,8 +2,12 @@ package com.ticket.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ticket.common.OrderStatus;
+import com.ticket.mapper.InventoryLogMapper;
 import com.ticket.mapper.OrderMapper;
+import com.ticket.mapper.TicketCategoryMapper;
+import com.ticket.model.entity.InventoryLog;
 import com.ticket.model.entity.Order;
+import com.ticket.model.entity.TicketCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -32,6 +36,8 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final RabbitTemplate rabbitTemplate;
     private final RedisService redisService;
+    private final TicketCategoryMapper categoryMapper;
+    private final InventoryLogMapper inventoryLogMapper;
 
     // ========== 下单 ==========
 
@@ -42,11 +48,13 @@ public class OrderService {
      * 抢票高峰期每秒几千个请求，MySQL 扛不住
      * MQ 像一个大坝，拦住洪峰，让下游按自己的节奏处理
      */
-    public void createOrderAsync(Long userId, Long sessionId, Long categoryId, int quantity) {
-        // 把下单信息拼接成消息体，发给 MQ
-        String message = userId + "," + sessionId + "," + categoryId + "," + quantity;
+    public String createOrderAsync(Long userId, Long sessionId, Long categoryId, int quantity) {
+        // 预生成订单号，排在 MQ 消息前面生成
+        String orderNo = generateOrderNo();
+        String message = orderNo + "," + userId + "," + sessionId + "," + categoryId + "," + quantity;
         rabbitTemplate.convertAndSend("order.exchange", "order.create", message);
         log.info("下单消息已发送到 MQ: {}", message);
+        return orderNo;
     }
 
     /**
@@ -56,10 +64,11 @@ public class OrderService {
      * 要么全部成功，要么全部回滚（不会出现扣了库存但没生成订单的情况）
      */
     @Transactional
-    public Order createOrder(Long userId, Long sessionId, Long categoryId, int quantity) {
+    public Order createOrder(String orderNo, Long userId, Long sessionId, Long categoryId, int quantity) {
 
-        // 生成唯一订单号
-        String orderNo = generateOrderNo();
+        // 查票价
+        TicketCategory category = categoryMapper.selectById(categoryId);
+        BigDecimal unitPrice = category != null ? category.getPrice() : BigDecimal.ZERO;
 
         // 创建订单实体
         Order order = new Order();
@@ -68,10 +77,28 @@ public class OrderService {
         order.setSessionId(sessionId);
         order.setCategoryId(categoryId);
         order.setQuantity(quantity);
-        order.setTotalAmount(BigDecimal.valueOf(100));   // 暂时固定价格，后续从 category 查
+        order.setTotalAmount(unitPrice.multiply(BigDecimal.valueOf(quantity)));
         order.setStatus(OrderStatus.PENDING_PAYMENT);    // 刚创建：待支付
 
         orderMapper.insert(order);
+
+        // 同步扣减 MySQL 库存
+        int affected = categoryMapper.deductStock(categoryId);
+        if (affected == 0) {
+            throw new RuntimeException("MySQL库存扣减失败，可能库存不足");
+        }
+
+        // 记录库存流水（审计）
+        InventoryLog logEntity = new InventoryLog();
+        logEntity.setCategoryId(categoryId);
+        logEntity.setChangeType(1);  // 1=扣减
+        logEntity.setQuantity(quantity);
+        logEntity.setOrderNo(orderNo);
+        inventoryLogMapper.insert(logEntity);
+
+        // 发送超时取消消息到延迟队列（30分钟后自动取消）
+        rabbitTemplate.convertAndSend("order.exchange", "order.delay", orderNo);
+
         log.info("订单已创建: orderNo={}", orderNo);
         return order;
     }
@@ -129,6 +156,14 @@ public class OrderService {
         // 回滚 MySQL 库存（调用 Mapper 的自定义方法）
         // 注意：这里的 SQL 逻辑是 remain_stock = remain_stock + quantity
         // 需要在 TicketCategoryMapper 里加一个 restoreStock 方法
+        // 记录库存流水（回滚）
+        InventoryLog logEntity = new InventoryLog();
+        logEntity.setCategoryId(order.getCategoryId());
+        logEntity.setChangeType(2);  // 2=回滚
+        logEntity.setQuantity(order.getQuantity());
+        logEntity.setOrderNo(orderNo);
+        inventoryLogMapper.insert(logEntity);
+
         log.info("订单已取消，库存已回滚: orderNo={}", orderNo);
     }
 

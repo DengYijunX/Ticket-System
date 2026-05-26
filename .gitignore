@@ -28,3 +28,10 @@ Thumbs.db
 
 # Docker
 mysql-data/
+
+# Dev docs & tools (local only)
+docs/
+stress-test.py
+
+# Prometheus config (local only)
+prometheus.yml

@@ -1,17 +1,14 @@
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Dropdown } from 'antd';
-import { HomeOutlined, OrderedListOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import { Layout, Button, Dropdown } from 'antd';
+import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import LoginPage from './pages/LoginPage';
 import ShowListPage from './pages/ShowListPage';
 import ShowDetailPage from './pages/ShowDetailPage';
 import OrderListPage from './pages/OrderListPage';
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 
-/**
- * 导航栏布局组件
- * 所有需要导航栏的页面都包在这个组件里
- */
+/** 导航栏布局 */
 function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,24 +19,39 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     navigate('/login');
   };
 
-  const menuItems = [
-    { key: '/', icon: <HomeOutlined />, label: <Link to="/">首页</Link> },
-    { key: '/orders', icon: <OrderedListOutlined />, label: <Link to="/orders">我的订单</Link> },
-  ];
-
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-        <div style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginRight: 40 }}>
-          🎫 票务系统
+    <Layout style={{ minHeight: '100vh', background: '#0a0a0f' }}>
+      {/* 导航栏 */}
+      <header className="nav-header">
+        <div className="nav-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+          <span className="highlight">TICKET</span>X
         </div>
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          style={{ flex: 1 }}
-        />
+
+        <nav style={{ flex: 1, display: 'flex', gap: 8 }}>
+          <Button
+            type="text"
+            onClick={() => navigate('/')}
+            style={{
+              color: location.pathname === '/' ? '#ff2d6b' : '#8888aa',
+              fontSize: 14,
+              fontWeight: location.pathname === '/' ? 600 : 400,
+            }}
+          >
+            演出
+          </Button>
+          <Button
+            type="text"
+            onClick={() => navigate('/orders')}
+            style={{
+              color: location.pathname === '/orders' ? '#ff2d6b' : '#8888aa',
+              fontSize: 14,
+              fontWeight: location.pathname === '/orders' ? 600 : 400,
+            }}
+          >
+            我的订单
+          </Button>
+        </nav>
+
         {token ? (
           <Dropdown menu={{
             items: [{
@@ -49,34 +61,47 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               onClick: handleLogout,
             }]
           }}>
-            <Button type="text" style={{ color: '#fff' }}>
-              <UserOutlined /> 用户
+            <Button
+              type="text"
+              icon={<UserOutlined />}
+              style={{ color: '#8888aa', borderRadius: 8 }}
+            >
+              用户
             </Button>
           </Dropdown>
         ) : (
-          <Button type="link" style={{ color: '#fff' }} onClick={() => navigate('/login')}>
+          <Button
+            onClick={() => navigate('/login')}
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,45,107,0.3)',
+              color: '#ff2d6b',
+              borderRadius: 8,
+            }}
+          >
             登录
           </Button>
         )}
-      </Header>
-      <Content style={{ padding: 24 }}>
+      </header>
+
+      <Content style={{ minHeight: 'calc(100vh - 64px)' }}>
         {children}
       </Content>
-      <Footer style={{ textAlign: 'center' }}>
-        票务系统 ©2026
-      </Footer>
+
+      <footer style={{
+        textAlign: 'center',
+        padding: '24px',
+        color: '#555577',
+        fontSize: 12,
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+      }}>
+        TICKETX · 票务系统 ©2026
+      </footer>
     </Layout>
   );
 }
 
-/**
- * 路由配置
- *
- * /login      → 登录/注册（不带导航栏）
- * /           → 演出列表（首页）
- * /show/:id   → 演出详情 + 抢票
- * /orders     → 订单列表
- */
+/** 路由 */
 export default function App() {
   return (
     <BrowserRouter>

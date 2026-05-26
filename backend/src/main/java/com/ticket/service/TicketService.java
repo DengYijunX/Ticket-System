@@ -3,6 +3,7 @@ package com.ticket.service;
 import com.ticket.common.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,6 +19,11 @@ public class TicketService {
 
     private final RedisService redisService;
     private final OrderService orderService;
+
+    @Value("${ticket.rate-limit.max-per-second}")
+    private int rateLimitMaxPerSecond;
+    @Value("${ticket.rate-limit.burst}")
+    private int rateLimitBurst;
 
     /**
      * 抢票入口
@@ -39,7 +45,7 @@ public class TicketService {
         // ---- 第1步：限流 ----
         // 按用户限流：同一个用户每秒最多3次请求
         String rateLimitKey = "rate_limit:user:" + userId;
-        if (!redisService.tryAcquire(rateLimitKey, 3, 3)) {
+        if (!redisService.tryAcquire(rateLimitKey, rateLimitBurst, rateLimitMaxPerSecond)) {
             log.warn("用户 {} 被限流", userId);
             return Result.badRequest("操作太频繁，请稍后再试");
         }
@@ -65,12 +71,9 @@ public class TicketService {
         }
 
         // ---- 第4步：Redis 扣成功 → 异步下单 ----
-        // 为什么不直接写 MySQL？
-        // 因为如果 1 万个请求同时写 MySQL，数据库会直接被打死
-        // MQ 做缓冲，消费者按自己能力慢慢处理
-        orderService.createOrderAsync(userId, sessionId, categoryId, quantity);
+        String orderNo = orderService.createOrderAsync(userId, sessionId, categoryId, quantity);
 
-        // 返回排队中，前端轮询查询结果
-        return Result.success("抢票成功，订单处理中");
+        // 返回订单号，前端可据此查询订单状态
+        return Result.success(orderNo);
     }
 }

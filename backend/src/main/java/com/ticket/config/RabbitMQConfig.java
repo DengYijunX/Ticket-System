@@ -1,6 +1,7 @@
 package com.ticket.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,6 +18,9 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RabbitMQConfig {
+
+    @Value("${ticket.order.pay-timeout-seconds}")
+    private int payTimeoutSeconds;
 
     /** 下单队列：存放待创建的订单消息 */
     public static final String ORDER_QUEUE = "order.queue";
@@ -72,8 +76,8 @@ public class RabbitMQConfig {
     @Bean
     public Queue delayQueue() {
         return QueueBuilder.durable(DELAY_QUEUE)
-                // 消息存活时间（毫秒）：30分钟 = 30 * 60 * 1000
-                .withArgument("x-message-ttl", 30 * 60 * 1000)
+                // 消息存活时间（毫秒），从配置文件读取
+                .withArgument("x-message-ttl", payTimeoutSeconds * 1000)
                 // 过期后转发到哪个死信交换机
                 .withArgument("x-dead-letter-exchange", ORDER_EXCHANGE)
                 // 死信的路由 key

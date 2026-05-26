@@ -6,6 +6,7 @@ import com.ticket.common.Result;
 import com.ticket.mapper.UserMapper;
 import com.ticket.model.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 登录
@@ -34,8 +36,8 @@ public class UserService {
         if (user == null) {
             return Result.badRequest("用户名或密码错误");
         }
-        // 校验密码（MVP 阶段先简单比对，正式环境应该用 BCrypt）
-        if (!user.getPassword().equals(password)) {
+        // BCrypt 密文比对
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             return Result.badRequest("用户名或密码错误");
         }
         // 检查账号状态
@@ -61,7 +63,7 @@ public class UserService {
         // 创建用户
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);  // MVP 阶段明文，后续用 BCrypt
+        user.setPassword(passwordEncoder.encode(password));  // BCrypt 加密存储
         user.setPhone(phone);
         user.setRole(0);             // 默认普通用户
         user.setStatus(1);           // 默认启用
