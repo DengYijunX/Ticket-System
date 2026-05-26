@@ -32,6 +32,7 @@ mysql-data/
 # Dev docs & tools (local only)
 docs/
 stress-test.py
+BCryptGen.java
 
 # Prometheus config (local only)
 prometheus.yml
