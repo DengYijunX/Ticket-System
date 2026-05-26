@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: docker.m.daocloud.io/library/mysql:8.0
+    image: mysql:8.0
     container_name: ticket-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -13,17 +13,17 @@ services:
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4
 
   redis:
-    image: docker.m.daocloud.io/library/redis:7
+    image: redis:7
     container_name: ticket-redis
     ports:
       - "6379:6379"
 
   rabbitmq:
-    image: docker.m.daocloud.io/library/rabbitmq:3-management
+    image: rabbitmq:3-management
     container_name: ticket-rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672"  # 管理控制台
+      - "15672:15672"
 
   app:
     build:
@@ -37,27 +37,26 @@ services:
       - redis
       - rabbitmq
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ticket_system?useUnicode=true&characterEncoding=utf8mb4
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ticket_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_DATA_REDIS_HOST: redis
       SPRING_RABBITMQ_HOST: rabbitmq
 
-  prometheus:
-    image: prom/prometheus
-    container_name: ticket-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
-  grafana:
-    image: grafana/grafana
-    container_name: ticket-grafana
-    ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
+  # 可选：Prometheus + Grafana 监控
+  # prometheus:
+  #   image: prom/prometheus
+  #   container_name: ticket-prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #
+  # grafana:
+  #   image: grafana/grafana
+  #   container_name: ticket-grafana
+  #   ports:
+  #     - "3000:3000"
 
 volumes:
   mysql-data:
