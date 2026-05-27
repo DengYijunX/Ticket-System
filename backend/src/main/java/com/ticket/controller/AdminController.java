@@ -5,6 +5,7 @@ import com.ticket.common.Result;
 import com.ticket.mapper.*;
 import com.ticket.model.entity.*;
 import com.ticket.service.OrderService;
+import com.ticket.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,7 @@ public class AdminController {
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
     private final OrderService orderService;
+    private final RedisService redisService;
 
     // ========== 数据看板 ==========
 
@@ -57,10 +59,47 @@ public class AdminController {
     // ========== 演出管理 ==========
 
     @GetMapping("/shows")
-    public Result<List<Show>> listShows() {
-        return Result.success(showMapper.selectList(
+    public Result<List<Map<String, Object>>> listShows() {
+        List<Show> rawShows = showMapper.selectList(
                 new LambdaQueryWrapper<Show>().orderByDesc(Show::getCreateTime)
-        ));
+        );
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (Show show : rawShows) {
+            Map<String, Object> showMap = new HashMap<>();
+            showMap.put("id", show.getId());
+            showMap.put("title", show.getTitle());
+            showMap.put("description", show.getDescription());
+            showMap.put("venue", show.getVenue());
+            showMap.put("status", show.getStatus());
+            showMap.put("createTime", show.getCreateTime());
+
+            // 查询场次
+            List<ShowSession> sessions = sessionMapper.selectList(
+                    new LambdaQueryWrapper<ShowSession>()
+                            .eq(ShowSession::getShowId, show.getId())
+                            .orderByAsc(ShowSession::getStartTime)
+            );
+            List<Map<String, Object>> sessionList = new ArrayList<>();
+            for (ShowSession s : sessions) {
+                Map<String, Object> sm = new HashMap<>();
+                sm.put("id", s.getId());
+                sm.put("name", s.getName());
+                sm.put("startTime", s.getStartTime());
+
+                // 查询票档
+                List<TicketCategory> cats = categoryMapper.selectList(
+                        new LambdaQueryWrapper<TicketCategory>()
+                                .eq(TicketCategory::getSessionId, s.getId())
+                                .orderByDesc(TicketCategory::getPrice)
+                );
+                sm.put("categories", cats);
+                sessionList.add(sm);
+            }
+            showMap.put("sessions", sessionList);
+            result.add(showMap);
+        }
+        return Result.success(result);
     }
 
     @PostMapping("/show")
@@ -90,6 +129,9 @@ public class AdminController {
                 cat.setTotalStock(c.getTotalStock());
                 cat.setRemainStock(c.getTotalStock());
                 categoryMapper.insert(cat);
+
+                // 库存预热到 Redis（抢票时 Redis 扣库存依赖这个）
+                redisService.preheatStock(cat.getId(), c.getTotalStock());
             }
         }
         return Result.success("创建成功");
