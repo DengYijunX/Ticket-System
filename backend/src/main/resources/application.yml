@@ -52,7 +52,7 @@ jwt:
 # ========== 业务参数 ==========
 ticket:
   order:
-    pay-timeout-seconds: 1800   # 订单支付超时（秒），默认30分钟
+    pay-timeout-seconds: 120    # 订单支付超时（秒），2 分钟（面试演示用）
   rate-limit:
     max-per-second: 3           # 每秒最多抢票次数
     burst: 3                    # 突发允许的峰值
