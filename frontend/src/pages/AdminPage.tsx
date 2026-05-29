@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, message, Modal, Input, Popconfirm, Table, Tag, Card, Statistic, Space } from 'antd';
+import { Button, message, Modal, Input, Popconfirm, Table, Tag, Card, Statistic, Space, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { PlusOutlined, DeleteOutlined, DollarOutlined, ExpandOutlined, CompressOutlined } from '@ant-design/icons';
 import {
   getDashboard, adminGetShows, adminCreateShow,
@@ -23,9 +24,10 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [expandedShow, setExpandedShow] = useState<number | null>(null);
+  const emptySession = () => ({ name: '', startTime: null as dayjs.Dayjs | null, categories: [{ name: '', price: 0, totalStock: 0 }] });
   const [formData, setFormData] = useState<any>({
     title: '', description: '', venue: '',
-    sessions: [{ name: '', startTime: '', categories: [{ name: '', price: 0, totalStock: 0 }] }],
+    sessions: [emptySession()],
   });
 
   useEffect(() => {
@@ -37,14 +39,23 @@ export default function AdminPage() {
   const refreshShows = () => adminGetShows().then(r => { if (r.data.code === 200) setShows(r.data.data); });
 
   const handleCreateShow = async () => {
-    const res = await adminCreateShow(formData);
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      venue: formData.venue,
+      status: 1,
+      saleStart: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
+      sessions: formData.sessions.map((s: any) => ({
+        name: s.name,
+        startTime: s.startTime ? s.startTime.format('YYYY-MM-DDTHH:mm:ss') : null,
+        categories: s.categories.map((c: any) => ({ name: c.name, price: c.price, totalStock: c.totalStock })),
+      })),
+    };
+    const res = await adminCreateShow(payload);
     if (res.data.code === 200) {
       message.success('创建成功！演出已上架，库存已写入 Redis');
       setModalOpen(false);
-      setFormData({
-        title: '', description: '', venue: '',
-        sessions: [{ name: '', startTime: '', categories: [{ name: '', price: 0, totalStock: 0 }] }],
-      });
+      setFormData({ title: '', description: '', venue: '', sessions: [emptySession()] });
       refreshShows();
     } else message.error(res.data.message);
   };
@@ -232,10 +243,11 @@ export default function AdminPage() {
                         ns[si].name = e.target.value;
                         setFormData({ ...formData, sessions: ns });
                       }} />
-                    <Input placeholder="2026-06-15T19:30:00" value={s.startTime} style={{ flex: 1 }}
-                      onChange={e => {
+                    <DatePicker showTime format="YYYY-MM-DD HH:mm" placeholder="选择日期时间"
+                      value={s.startTime} style={{ flex: 1 }}
+                      onChange={(val) => {
                         const ns = [...formData.sessions];
-                        ns[si].startTime = e.target.value;
+                        ns[si].startTime = val;
                         setFormData({ ...formData, sessions: ns });
                       }} />
                   </Space>
@@ -275,14 +287,14 @@ export default function AdminPage() {
                     <Button size="small" danger onClick={() => {
                       const ns = [...formData.sessions];
                       ns.splice(si, 1);
-                      setFormData({ ...formData, sessions: ns.length > 0 ? ns : [{ name: '', startTime: '', categories: [{ name: '', price: 0, totalStock: 0 }] }] });
+                      setFormData({ ...formData, sessions: ns.length > 0 ? ns : [{ name: '', startTime: null, categories: [{ name: '', price: 0, totalStock: 0 }] }] });
                     }}>删除场次</Button>
                   </Space>
                 </div>
               ))}
               <Button onClick={() => setFormData({
                 ...formData,
-                sessions: [...formData.sessions, { name: '', startTime: '', categories: [{ name: '', price: 0, totalStock: 0 }] }],
+                sessions: [...formData.sessions, { name: '', startTime: null, categories: [{ name: '', price: 0, totalStock: 0 }] }],
               })} block>+ 添加场次</Button>
               <Button block onClick={handleCreateShow}
                 style={{
