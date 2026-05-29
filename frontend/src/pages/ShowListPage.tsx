@@ -2,7 +2,27 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getShowList } from '../api';
 
-/** 演出列表 — 暗色舞台风格卡片 */
+const gradients = [
+  'linear-gradient(135deg, #ff2d6b 0%, #ff6b35 100%)',
+  'linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%)',
+  'linear-gradient(135deg, #ffd700 0%, #ff6b35 100%)',
+  'linear-gradient(135deg, #7c3aed 0%, #00d4ff 100%)',
+  'linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)',
+  'linear-gradient(135deg, #ff6b35 0%, #ffd700 100%)',
+];
+
+const typeEmoji: Record<string, string> = {
+  '演唱会': '🎤',
+  '音乐节': '🎸',
+  '话剧': '🎭',
+};
+
+function getEmoji(title: string): string {
+  if (title.includes('音乐节')) return '🎸';
+  if (title.includes('话剧') || title.includes('梦')) return '🎭';
+  return '🎤';
+}
+
 export default function ShowListPage() {
   const [shows, setShows] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -13,13 +33,7 @@ export default function ShowListPage() {
     });
   }, []);
 
-  // 封面配色方案
-  const gradients = [
-    'linear-gradient(135deg, #ff2d6b 0%, #ff6b35 100%)',
-    'linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%)',
-    'linear-gradient(135deg, #ffd700 0%, #ff6b35 100%)',
-    'linear-gradient(135deg, #7c3aed 0%, #00d4ff 100%)',
-  ];
+  const formatPrice = (p: number) => (p ? `¥${p}` : '--');
 
   return (
     <div className="page">
@@ -28,7 +42,7 @@ export default function ShowListPage() {
           <div>
             <div className="page-title">正在热售</div>
             <div style={{ color: '#555577', fontSize: 14 }}>
-              {shows.length} 场演出即将开抢
+              {shows.length} 场演出热卖中
             </div>
           </div>
           <div style={{ color: '#555577', fontSize: 12 }}>
@@ -44,37 +58,63 @@ export default function ShowListPage() {
       }}>
         {shows.map((show, i) => {
           const gradient = gradients[i % gradients.length];
-          const emojis = ['🎤', '🎸', '🎹', '🎪'];
+          const emoji = getEmoji(show.title);
+          const hasMinPrice = show.minPrice != null;
+          const hasMaxPrice = show.maxPrice != null;
+
           return (
             <div
               key={show.id}
               className="show-card fade-up"
-              style={{ animationDelay: `${i * 0.1}s` }}
+              style={{ animationDelay: `${i * 0.08}s` }}
               onClick={() => navigate(`/show/${show.id}`)}
             >
-              {/* 封面 */}
               <div className="show-card-cover" style={{ background: gradient }}>
-                <span style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.3))' }}>
-                  {emojis[i % emojis.length]}
+                <span style={{ fontSize: 52, filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.3))' }}>
+                  {emoji}
                 </span>
               </div>
 
-              {/* 内容 */}
               <div className="show-card-body">
                 <div className="show-card-title">{show.title}</div>
                 <div className="show-card-venue">{show.venue}</div>
+
+                {/* 价格区间 + 场次 */}
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: 12,
-                  color: '#ff2d6b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginTop: 12, paddingTop: 12,
+                  borderTop: '1px solid rgba(255,255,255,0.05)',
+                }}>
+                  {hasMinPrice && hasMaxPrice ? (
+                    <span style={{
+                      fontSize: 14, fontWeight: 600,
+                      fontFamily: "'Archivo Black', sans-serif",
+                      background: 'linear-gradient(90deg, #ff2d6b, #ff6b35)',
+                      WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    }}>
+                      {formatPrice(show.minPrice)} - {formatPrice(show.maxPrice)}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 13, color: '#555577' }}>待定价</span>
+                  )}
+                  <span style={{
+                    fontSize: 11, color: '#8888aa',
+                    background: 'rgba(124,58,237,0.15)', padding: '2px 8px', borderRadius: 4,
+                  }}>
+                    {show.sessionCount || 0} 场
+                  </span>
+                </div>
+
+                {/* 开售状态 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 8,
+                  fontSize: 11, color: '#52c41a',
                 }}>
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: '#ff2d6b', display: 'inline-block',
+                    background: '#52c41a', display: 'inline-block',
                   }} />
-                  即将开抢
+                  热售中
                 </div>
               </div>
             </div>

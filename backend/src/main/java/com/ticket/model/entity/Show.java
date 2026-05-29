@@ -31,6 +31,18 @@ public class Show {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
+    /** 场次数量（非数据库字段） */
+    @TableField(exist = false)
+    private Integer sessionCount;
+
+    /** 最低票价（非数据库字段） */
+    @TableField(exist = false)
+    private java.math.BigDecimal minPrice;
+
+    /** 最高票价（非数据库字段） */
+    @TableField(exist = false)
+    private java.math.BigDecimal maxPrice;
+
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 }

@@ -87,6 +87,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Jackson Java 8 时间支持 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
         <!-- BCrypt 密码加密 -->
         <dependency>
             <groupId>org.springframework.security</groupId>
