@@ -80,23 +80,33 @@ public class RabbitMQConfig {
                 .withArgument("x-message-ttl", payTimeoutSeconds * 1000)
                 // 过期后转发到哪个死信交换机
                 .withArgument("x-dead-letter-exchange", ORDER_EXCHANGE)
-                // 死信的路由 key
-                .withArgument("x-dead-letter-routing-key", "order.delay")
+                // 死信的路由 key（过期后转发到此 key，不同于 entry key）
+                .withArgument("x-dead-letter-routing-key", "order.timeout")
                 .build();
     }
 
     /**
      * 延迟队列的消费者（处理超时取消订单）
      */
+    /** 延迟队列绑定：order.delay → delayQueue（带 TTL） */
+    @Bean
+    public Binding delayBinding() {
+        return BindingBuilder.bind(delayQueue())
+                .to(orderExchange())
+                .with(DELAY_ROUTING_KEY);
+    }
+
+    /** 死信队列（超时后的订单到这里） */
     @Bean
     public Queue delayDeadQueue() {
         return QueueBuilder.durable("order.delay.dead").build();
     }
 
+    /** 死信绑定：order.timeout → delayDeadQueue */
     @Bean
     public Binding delayDeadBinding() {
         return BindingBuilder.bind(delayDeadQueue())
                 .to(orderExchange())
-                .with(DELAY_ROUTING_KEY);
+                .with("order.timeout");
     }
 }
