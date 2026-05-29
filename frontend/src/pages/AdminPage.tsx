@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, message, Modal, Input, Popconfirm, Table, Tag, Card, Statistic, Space, DatePicker } from 'antd';
+import { Button, message, Modal, Input, InputNumber, Popconfirm, Table, Tag, Card, Statistic, Space, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import { PlusOutlined, DeleteOutlined, DollarOutlined, ExpandOutlined, CompressOutlined } from '@ant-design/icons';
 import {
@@ -259,16 +259,16 @@ export default function AdminPage() {
                           ns[si].categories[ci].name = e.target.value;
                           setFormData({ ...formData, sessions: ns });
                         }} />
-                      <Input placeholder="价格" type="number" value={c.price || ''} style={{ width: 100 }}
-                        onChange={e => {
+                      <InputNumber placeholder="价格" min={0} precision={0} value={c.price || 0} style={{ width: 100 }}
+                        onChange={(val) => {
                           const ns = [...formData.sessions];
-                          ns[si].categories[ci].price = Number(e.target.value);
+                          ns[si].categories[ci].price = val || 0;
                           setFormData({ ...formData, sessions: ns });
                         }} />
-                      <Input placeholder="库存" type="number" value={c.totalStock || ''} style={{ width: 90 }}
-                        onChange={e => {
+                      <InputNumber placeholder="库存" min={1} precision={0} value={c.totalStock || 0} style={{ width: 90 }}
+                        onChange={(val) => {
                           const ns = [...formData.sessions];
-                          ns[si].categories[ci].totalStock = Number(e.target.value);
+                          ns[si].categories[ci].totalStock = val || 0;
                           setFormData({ ...formData, sessions: ns });
                         }} />
                       <Button type="text" size="small" danger onClick={() => {
