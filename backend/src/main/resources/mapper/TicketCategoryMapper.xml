@@ -22,4 +22,11 @@
           AND remain_stock > 0
     </update>
 
+    <!-- 回滚库存（订单取消时用） -->
+    <update id="restoreStock">
+        UPDATE ticket_category
+        SET remain_stock = remain_stock + #{quantity}
+        WHERE id = #{categoryId}
+    </update>
+
 </mapper>

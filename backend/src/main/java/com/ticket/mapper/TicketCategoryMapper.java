@@ -18,4 +18,7 @@ public interface TicketCategoryMapper extends BaseMapper<TicketCategory> {
      * 这个 SQL 需要写在 XML 里，后面会配
      */
     int deductStock(Long categoryId);
+
+    /** 回滚库存：remain_stock + quantity */
+    int restoreStock(Long categoryId, int quantity);
 }

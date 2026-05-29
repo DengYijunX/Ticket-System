@@ -121,7 +121,7 @@ export default function OrderListPage() {
                     </div>
                     <div>
                       <div style={{ color: '#555577', marginBottom: 4 }}>票档</div>
-                      <div style={{ color: '#ccc' }}>ID: {order.categoryId}</div>
+                      <div style={{ color: '#ccc' }}>{order.categoryName || `ID: ${order.categoryId}`}</div>
                     </div>
                     <div>
                       <div style={{ color: '#555577', marginBottom: 4 }}>状态</div>

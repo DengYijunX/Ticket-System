@@ -34,6 +34,10 @@ public class Order {
 
     private Integer status;                // 0=待支付 1=已支付 2=已取消 3=已退款 4=已完成
 
+    /** 票档名称（非数据库字段，查询时填充） */
+    @TableField(exist = false)
+    private String categoryName;
+
     private LocalDateTime payTime;         // 支付时间
 
     @TableField(fill = FieldFill.INSERT)

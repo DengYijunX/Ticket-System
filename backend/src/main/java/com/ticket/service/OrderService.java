@@ -118,11 +118,19 @@ public class OrderService {
      * 查询用户的所有订单
      */
     public List<Order> getUserOrders(Long userId) {
-        return orderMapper.selectList(
+        List<Order> orders = orderMapper.selectList(
                 new LambdaQueryWrapper<Order>()
                         .eq(Order::getUserId, userId)
                         .orderByDesc(Order::getCreateTime)
         );
+        // 填充票档名称
+        for (Order order : orders) {
+            TicketCategory category = categoryMapper.selectById(order.getCategoryId());
+            if (category != null) {
+                order.setCategoryName(category.getName());
+            }
+        }
+        return orders;
     }
 
     // ========== 取消订单（超时未支付） ==========
@@ -153,9 +161,9 @@ public class OrderService {
         // 回滚 Redis 库存
         redisService.restoreStock(order.getCategoryId(), order.getQuantity());
 
-        // 回滚 MySQL 库存（调用 Mapper 的自定义方法）
-        // 注意：这里的 SQL 逻辑是 remain_stock = remain_stock + quantity
-        // 需要在 TicketCategoryMapper 里加一个 restoreStock 方法
+        // 回滚 MySQL 库存
+        categoryMapper.restoreStock(order.getCategoryId(), order.getQuantity());
+
         // 记录库存流水（回滚）
         InventoryLog logEntity = new InventoryLog();
         logEntity.setCategoryId(order.getCategoryId());
