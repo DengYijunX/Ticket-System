@@ -43,37 +43,41 @@ public class TicketService {
     public Result<String> buyTicket(Long userId, Long sessionId, Long categoryId, int quantity) {
 
         // ---- 第1步：限流 ----
-        // 按用户限流：同一个用户每秒最多3次请求
         String rateLimitKey = "rate_limit:user:" + userId;
         if (!redisService.tryAcquire(rateLimitKey, rateLimitBurst, rateLimitMaxPerSecond)) {
             log.warn("用户 {} 被限流", userId);
             return Result.badRequest("操作太频繁，请稍后再试");
         }
 
-        // ---- 第2步：检查是否已售罄（内存标记，快速拒绝） ----
+        // ---- 第2步：幂等性校验，防止同一用户对同一票档重复提交 ----
+        // 用 SETNX 设一个 10 秒的标记，如果已存在则拒绝
+        // 与分布式锁不同：标记不主动释放，靠 TTL 过期，保证 10 秒内不会重复下单
+        String dedupKey = "dedup:order:" + userId + ":" + categoryId;
+        if (!redisService.tryLock(dedupKey, 10)) {
+            return Result.badRequest("请勿重复提交");
+        }
+
+        // ---- 第3步：检查是否已售罄 ----
         if (redisService.isSoldOut(categoryId)) {
+            redisService.unlock(dedupKey);
             return Result.badRequest("已售罄");
         }
 
-        // ---- 第3步：Redis 原子扣库存 ----
-        // 这一步是扛住高并发的关键
-        // Lua 脚本在 Redis 服务端原子执行，不怕并发
+        // ---- 第4步：Redis 原子扣库存 ----
         Long result = redisService.deductStock(categoryId, quantity);
 
         if (result == -1) {
-            // 库存 key 不存在，可能还没预热
+            redisService.unlock(dedupKey);
             return Result.badRequest("演出尚未开售");
         }
         if (result == 0) {
-            // 库存不足，标记售罄避免后续无效请求
             redisService.markSoldOut(categoryId);
+            redisService.unlock(dedupKey);
             return Result.badRequest("库存不足");
         }
 
-        // ---- 第4步：Redis 扣成功 → 异步下单 ----
-        String orderNo = orderService.createOrderAsync(userId, sessionId, categoryId, quantity);
-
-        // 返回订单号，前端可据此查询订单状态
-        return Result.success(orderNo);
+        // ---- 第5步：异步下单 ----
+        orderService.createOrderAsync(userId, sessionId, categoryId, quantity);
+        return Result.success("抢票成功，订单处理中");
     }
 }
