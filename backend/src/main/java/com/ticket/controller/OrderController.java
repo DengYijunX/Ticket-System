@@ -54,4 +54,11 @@ public class OrderController {
         Long userId = jwtUtil.getUserId(token);
         return Result.success(orderService.getUserOrders(userId));
     }
+
+    /** 模拟支付 */
+    @PostMapping("/pay")
+    public Result<?> pay(@RequestParam String orderNo) {
+        orderService.payOrder(orderNo);
+        return Result.success("支付成功");
+    }
 }

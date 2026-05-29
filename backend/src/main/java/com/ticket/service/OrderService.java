@@ -175,6 +175,24 @@ public class OrderService {
         log.info("订单已取消，库存已回滚: orderNo={}", orderNo);
     }
 
+    // ========== 支付 ==========
+
+    /**
+     * 模拟支付：待支付 → 已支付 → 已完成
+     */
+    @Transactional
+    public void payOrder(String orderNo) {
+        Order order = getByOrderNo(orderNo);
+        if (order == null) throw new RuntimeException("订单不存在");
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new RuntimeException("订单状态不允许支付");
+        }
+        order.setStatus(OrderStatus.PAID);
+        order.setPayTime(LocalDateTime.now());
+        orderMapper.updateById(order);
+        log.info("订单已支付: orderNo={}", orderNo);
+    }
+
     // ========== 工具 ==========
 
     /**

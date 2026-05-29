@@ -61,6 +61,10 @@ export const getOrderList = () => api.get('/order/list');
 export const getOrderStatus = (orderNo: string) =>
   api.get(`/order/status?orderNo=${orderNo}`);
 
+/** 模拟支付 */
+export const payOrder = (orderNo: string) =>
+  api.post(`/order/pay?orderNo=${orderNo}`);
+
 /** ========== 管理后台 ========== */
 
 /** 数据看板 */

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { message, Tag } from 'antd';
+import { Button, message, Tag } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
-import { getOrderList } from '../api';
+import { getOrderList, payOrder } from '../api';
 
 const STATUS_MAP: Record<number, { text: string; color: string }> = {
   0: { text: '待支付', color: 'orange' },
@@ -21,9 +21,25 @@ export default function OrderListPage() {
     });
   }, []);
 
+  const [payingId, setPayingId] = useState<number | null>(null);
+
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
     message.success('已复制');
+  };
+
+  const handlePay = async (orderNo: string, orderId: number) => {
+    setPayingId(orderId);
+    try {
+      const res = await payOrder(orderNo);
+      if (res.data.code === 200) {
+        message.success('支付成功');
+        getOrderList().then((r) => r.data.code === 200 && setOrders(r.data.data));
+      } else {
+        message.error(res.data.message);
+      }
+    } catch { message.error('支付失败'); }
+    setPayingId(null);
   };
 
   return (
@@ -135,6 +151,19 @@ export default function OrderListPage() {
                         {order.createTime?.replace('T', ' ')}
                       </div>
                     </div>
+                    {order.status === 0 && (
+                      <div style={{ gridColumn: '1 / -1', marginTop: 8 }}>
+                        <Button
+                          type="primary"
+                          size="small"
+                          loading={payingId === order.id}
+                          onClick={(e) => { e.stopPropagation(); handlePay(order.orderNo, order.id); }}
+                          style={{ background: '#52c41a', border: 'none' }}
+                        >
+                          模拟支付
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
